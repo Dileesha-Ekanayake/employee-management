@@ -23,7 +23,7 @@ Getting Started
 Clone this repository
 Install dependencies: npm install
 Start the development server: npm start
-Open http://localhost:3000 to view it in the browser
+Open http://localhost:port to view it in the browser
 
 Project Structure
 
