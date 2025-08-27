@@ -89,6 +89,12 @@ h2 {
     padding: 8px;
 }
 
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
 /* Submit Button */
 .submit-btn {
     width: 100%;
@@ -139,7 +145,7 @@ h2 {
     background-color: #4a4a4a;
     color: #ffffff;
     padding: 18px 16px;
-    text-align: left;
+    text-align: center;
     font-weight: 600;
     font-size: 14px;
     text-transform: uppercase;
@@ -173,6 +179,22 @@ h2 {
     font-weight: bold;
     color: #0ea5e9;
     width: 60px;
+}
+
+.action-button-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.edit-button {
+    background-color: rgb(198, 113, 255);
+    color: #ffffff;
+}
+
+.delete-button {
+    background-color: rgb(253, 59, 60);
+    color: #ffffff;
 }
 
 /* Responsive Design */

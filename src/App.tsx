@@ -1,5 +1,5 @@
 import './App.css'
-import EmployeeComponent from "./component/EmployeeComponent.tsx";
+import {EmployeeComponent} from "./component/EmployeeComponent.tsx";
 import {BrowserRouter as Router, Route, Routes} from "react-router-dom";
 
 function App() {

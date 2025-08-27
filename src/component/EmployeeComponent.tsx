@@ -4,6 +4,7 @@ import {ApiEndpoints} from "../service/api-endpoints.ts";
 import type {Employee} from "../entity/Employee.ts";
 import type {Gender} from "../entity/Gender.ts";
 import './EmployeeComponent.css';
+import * as React from "react";
 
 type FormState = {
     name: string;
@@ -19,9 +20,10 @@ const initialForm: FormState = {
     gender: null,
 };
 
-function EmployeeComponent() {
+export function EmployeeComponent() {
 
     const [employee, setEmployee] = useState<Employee | null>(null);
+    const [oldEmployee, setOldEmployee] = useState<Employee | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [genders, setGenders] = useState<Gender[]>([]);
     const [loading, setLoading] = useState(true);
@@ -29,6 +31,7 @@ function EmployeeComponent() {
 
     const [form, setForm] = useState<FormState>(initialForm);
     const [submitting, setSubmitting] = useState(false);
+    const [updating, setUpdating] = useState(false);
 
     /*
      * useEffect lets you run a function after the component renders. Typical use cases include:
@@ -50,9 +53,17 @@ function EmployeeComponent() {
     useEffect(() => {
         Promise.all([loadEmployees(), loadGenders()])
             .finally(() => setLoading(false));
+
+        disableButtons(false, true);
     }, []);
 
-    async function loadEmployees() {
+    /**
+     * Fetches the list of employees from the API and updates the employees state.
+     * If the API call fails, sets an error message to the error state.
+     *
+     * @return {Promise<void>} A promise that resolves when the employee data is successfully loaded and state is updated.
+     */
+    async function loadEmployees(): Promise<void> {
         try {
             const response = await ApiService.get<Employee[]>(ApiEndpoints.paths.employee);
             return setEmployees(response.data);
@@ -62,7 +73,13 @@ function EmployeeComponent() {
         }
     }
 
-    async function loadGenders() {
+    /**
+     * Fetches the list of genders from the API and updates the state with the retrieved data.
+     * Handles errors by setting an appropriate error message.
+     *
+     * @return {Promise<void>} A promise that resolves when the genders are successfully loaded or rejects if an error occurs.
+     */
+    async function loadGenders(): Promise<void> {
         try {
             const response = await ApiService.get<Gender[]>(ApiEndpoints.paths.gender);
             return setGenders(response.data);
@@ -70,6 +87,18 @@ function EmployeeComponent() {
             const errorMessage = error instanceof Error ? error.message : "Failed to fetch genders";
             setError(errorMessage);
         }
+    }
+
+    /**
+     * Disables buttons based on the provided boolean parameters.
+     *
+     * @param {boolean} add - Determines whether the "add" button should be disabled.
+     * @param {boolean} update - Determines whether the "update" button should be disabled.
+     * @return {void} This function does not return a value.
+     */
+    function disableButtons(add: boolean, update: boolean): void {
+        setSubmitting(add);
+        setUpdating(update);
     }
 
     /**
@@ -129,11 +158,12 @@ function EmployeeComponent() {
      * @param {React.FormEvent} e - The form submission event.
      * @returns {Promise<void>} A promise that resolves when the operation completes.
      */
-    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+    const save = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
 
-        if (!form.name || !form.nic || !form.email || !form.gender) {
-            setError("Please fill in all fields");
+        const errors = getErrors();
+        if (errors.length > 0) {
+            setError(errors.join(", "));
             return;
         }
 
@@ -159,14 +189,183 @@ function EmployeeComponent() {
         }
     };
 
+    /**
+     * Handles the update operation when the form is submitted.
+     * This function processes the updates, validates for any errors,
+     * submits the updated data to the API, and triggers a UI update.
+     *
+     * @param {React.FormEvent} e - The event triggered by the form submission.
+     * @returns {Promise<void>} A promise that resolves when the update process completes.
+     *
+     * The function performs the following steps:
+     * 1. Prevents the default form submission behavior.
+     * 2. Retrieves the list of updates and, if changes are detected, displays them in an alert.
+     * 3. Checks for validation errors and updates the error state if any exist.
+     * 4. Executes the API call to update employee data when there are no errors.
+     * 5. On success, refreshes the employee list, resets the form to its initial state,
+     *    and displays a confirmation message with the response data.
+     * 6. On failure, updates the error state with the encountered error message.
+     * 7. Toggles the updating state and re-enables submit buttons after the process finishes.
+     */
+    const update = async (e: React.FormEvent): Promise<void> => {
+        e.preventDefault();
+
+        const updates = getUpdates();
+        if (updates.length > 0) {
+            alert(updates.join(", "));
+        } else {
+            alert("No changes detected");
+        }
+
+        const errors = getErrors();
+        if (errors.length > 0) {
+            setError(errors.join(", "));
+            return;
+        }
+
+        setUpdating(true);
+        setError(null);
+
+        try {
+
+            if (employee && oldEmployee) {
+                employee.id = oldEmployee.id;
+            }
+            const response = await ApiService.put<Employee>(
+                ApiEndpoints.paths.employee,
+                employee
+            );
+
+            await loadEmployees();
+            setForm(initialForm);
+            alert(response.message + " " + response.data);
+
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to update employee";
+            setError(errorMessage);
+        } finally {
+            setUpdating(false);
+            disableButtons(false, true);
+        }
+    }
+
+    /**
+     * Deletes a specified employee after user confirmation.
+     *
+     * This function prompts the user with a confirmation dialog before proceeding with the deletion of the employee.
+     * If confirmed, it sends a DELETE request to the server to remove the employee identified by the given ID.
+     * Upon successful deletion, it refreshes the list of employees and displays a notification message.
+     * In the case of an error during the deletion process, the error message is displayed.
+     *
+     * @param {Employee} employee - The employee object containing details of the employee to be deleted, including their ID and name.
+     * @returns {Promise<void>} A promise that resolves once the employee is deleted and the employees' list is refreshed.
+     */
+    const deleteEmployee = async (employee: Employee): Promise<void> => {
+
+        if (!window.confirm("Are you sure you want to delete this employee? : " + employee.name + "")) {
+            return;
+        }
+
+        try {
+            const response = await ApiService.delete<Employee>(
+                ApiEndpoints.paths.employee + "/" + employee.id
+            );
+            await loadEmployees();
+            alert(response.message + " " + response.data);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to delete employee";
+            setError(errorMessage);
+        }
+    };
+
+
     if (loading) return <div>Loading employees and genders...</div>;
     if (error) return <div>Error: {error}</div>;
+
+    /**
+     * Collects and returns a list of validation error messages based on missing form fields.
+     *
+     * @return {string[]} An array of error messages indicating which form fields are missing or invalid.
+     */
+    function getErrors(): Array<string> {
+        const errors: string[] = [];
+
+        if (!form.name) errors.push("Name is required");
+        if (!form.nic) errors.push("NIC is required");
+        if (!form.email) errors.push("Email is required");
+        if (!form.gender) errors.push("Gender is required");
+
+        return errors;
+    }
+
+    /**
+     * Updates the form with the provided employee data and prepares the form
+     * state for potential editing by initializing old and current employee data.
+     *
+     * @function
+     * @param {Employee} employee - The employee object containing data to populate the form.
+     * @returns {void}
+     */
+    const fillForm = (employee: Employee): void => {
+        setForm(employee);
+        setEmployee(JSON.parse(JSON.stringify(employee)));
+        setOldEmployee(JSON.parse(JSON.stringify(employee)));
+
+        disableButtons(true, false);
+    }
+
+    /**
+     * Identifies and returns a list of updates made to an employee's information by comparing the current employee data to the old employee data.
+     *
+     * @return {Array<string>} An array of strings describing the specific updates that were made (e.g., "Name is updated", "NIC is updated", etc.).
+     * If no updates are found, returns an empty array.
+     */
+    function getUpdates(): Array<string> {
+        const updates: string[] = [];
+
+        if (employee && oldEmployee) {
+           if (employee.name !== oldEmployee.name) {
+               updates.push("Name is updated");
+           }
+           if (employee.nic !== oldEmployee.nic) {
+               updates.push("NIC is updated");
+           }
+           if (employee.email !== oldEmployee.email) {
+               updates.push("Email is updated");
+           }
+           if (employee.gender?.id !== oldEmployee.gender?.id) {
+               updates.push("Gender is updated");
+           }
+        }
+        return updates;
+    }
+
+    /**
+     * Resets the form state and associated variables to their initial values.
+     *
+     * This function performs the following actions:
+     * - Resets the form data to its initial state.
+     * - Clears the current employee data.
+     * - Clears the old employee reference.
+     * - Updates button states by disabling or enabling specific buttons.
+     *
+     * This is typically used to clear and reset the interface after an operation has been completed or when initializing the form.
+     *
+     * @function clear
+     * @returns {void} Does not return any value.
+     */
+    const clear = (): void => {
+        setForm(initialForm);
+        setEmployee(null);
+        setOldEmployee(null);
+        disableButtons(false, true);
+    }
 
     return (
         <div className="employee-container">
             <h2>Add New Employee</h2>
 
-            <form className="employee-form" onSubmit={handleSubmit}
+            <form className="employee-form"
                   style={{marginBottom: '20px', padding: '20px', border: '1px solid #ccc'}}>
                 <div className="form-group">
                     <div style={{marginBottom: '10px'}}>
@@ -238,19 +437,50 @@ function EmployeeComponent() {
                     </div>
                 )}
 
-                <button
-                    type="submit"
-                    disabled={submitting}
-                    style={{
-                        padding: '10px 20px',
-                        backgroundColor: submitting ? '#ccc' : '#007bff',
-                        color: 'white',
-                        border: 'none',
-                        cursor: submitting ? 'not-allowed' : 'pointer'
-                    }}
-                >
-                    {submitting ? 'Adding...' : 'Add Employee'}
-                </button>
+                <div className="button-container">
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                        onClick={save}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: submitting ? '#ccc' : '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            cursor: submitting ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {submitting ? 'Adding...' : 'Add'}
+                    </button>
+
+                    <button
+                        type="submit"
+                        disabled={updating}
+                        onClick={update}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: updating ? '#ccc' : '#fd3b3c',
+                            color: 'white',
+                            border: 'none',
+                            cursor: updating ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {updating ? 'Updating...' : 'Update'}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={clear}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#6eab47',
+                            color: 'white',
+                            border: 'none',
+                        }}
+                    >
+                        Clear
+                    </button>
+                </div>
             </form>
 
             <h2>Employee List</h2>
@@ -264,6 +494,7 @@ function EmployeeComponent() {
                         <th>NIC</th>
                         <th>Email</th>
                         <th>Gender</th>
+                        <th>Action</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -274,6 +505,12 @@ function EmployeeComponent() {
                             <td>{emp.nic}</td>
                             <td>{emp.email}</td>
                             <td>{emp.gender?.name}</td>
+                            <td>
+                                <div className="action-button-container">
+                                    <button className="edit-button" onClick={() => fillForm(emp)}>Edit</button>
+                                    <button className="delete-button" onClick={() => deleteEmployee(emp)}>Delete</button>
+                                </div>
+                            </td>
                         </tr>
                     ))}
                     </tbody>
@@ -282,5 +519,3 @@ function EmployeeComponent() {
         </div>
     );
 }
-
-export default EmployeeComponent;
