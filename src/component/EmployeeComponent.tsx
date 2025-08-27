@@ -3,7 +3,7 @@ import {ApiService} from "../service/api-service.ts";
 import {ApiEndpoints} from "../service/api-endpoints.ts";
 import type {Employee} from "../entity/Employee.ts";
 import type {Gender} from "../entity/Gender.ts";
-import * as React from "react";
+import './EmployeeComponent.css';
 
 type FormState = {
     name: string;
@@ -84,16 +84,16 @@ function EmployeeComponent() {
      * are filled, a new employee object is created and set. If any of the required fields are incomplete, the employee state is reset to null.
      */
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
 
         setForm(previous => {
             let employeeForm: FormState;
 
             if (name === "gender") {
                 const selectedGender = genders.find(g => g.id.toString() === value) || null;
-                employeeForm = { ...previous, gender: selectedGender };
+                employeeForm = {...previous, gender: selectedGender};
             } else {
-                employeeForm = { ...previous, [name]: value };
+                employeeForm = {...previous, [name]: value};
             }
 
             // Update the employee object if all fields are filled
@@ -163,70 +163,73 @@ function EmployeeComponent() {
     if (error) return <div>Error: {error}</div>;
 
     return (
-        <div>
+        <div className="employee-container">
             <h2>Add New Employee</h2>
 
-            <form onSubmit={handleSubmit} style={{marginBottom: '20px', padding: '20px', border: '1px solid #ccc'}}>
-                <div style={{marginBottom: '10px'}}>
-                    <label>
-                        Name:
-                        <input
-                            type="text"
-                            name="name"
-                            value={form.name}
-                            onChange={handleInputChange}
-                            required
-                            style={{marginLeft: '10px', padding: '5px'}}
-                        />
-                    </label>
-                </div>
+            <form className="employee-form" onSubmit={handleSubmit}
+                  style={{marginBottom: '20px', padding: '20px', border: '1px solid #ccc'}}>
+                <div className="form-group">
+                    <div style={{marginBottom: '10px'}}>
+                        <label>
+                            Name:
+                            <input
+                                type="text"
+                                name="name"
+                                value={form.name}
+                                onChange={handleInputChange}
+                                required
+                                style={{marginLeft: '10px', padding: '5px'}}
+                            />
+                        </label>
+                    </div>
 
-                <div style={{marginBottom: '10px'}}>
-                    <label>
-                        NIC:
-                        <input
-                            type="text"
-                            name="nic"
-                            value={form.nic}
-                            onChange={handleInputChange}
-                            required
-                            style={{marginLeft: '10px', padding: '5px'}}
-                        />
-                    </label>
-                </div>
+                    <div style={{marginBottom: '10px'}}>
+                        <label>
+                            NIC:
+                            <input
+                                type="text"
+                                name="nic"
+                                value={form.nic}
+                                onChange={handleInputChange}
+                                required
+                                style={{marginLeft: '10px', padding: '5px'}}
+                            />
+                        </label>
+                    </div>
 
-                <div style={{marginBottom: '10px'}}>
-                    <label>
-                        Email:
-                        <input
-                            type="email"
-                            name="email"
-                            value={form.email}
-                            onChange={handleInputChange}
-                            required
-                            style={{marginLeft: '10px', padding: '5px'}}
-                        />
-                    </label>
-                </div>
+                    <div style={{marginBottom: '10px'}}>
+                        <label>
+                            Email:
+                            <input
+                                type="email"
+                                name="email"
+                                value={form.email}
+                                onChange={handleInputChange}
+                                required
+                                style={{marginLeft: '10px', padding: '5px'}}
+                            />
+                        </label>
+                    </div>
 
-                <div style={{marginBottom: '10px'}}>
-                    <label>
-                        Gender:
-                        <select
-                            name="gender"
-                            value={form.gender?.id?.toString() || ""}
-                            onChange={handleInputChange}
-                            required
-                            style={{marginLeft: '10px', padding: '5px'}}
-                        >
-                            <option value="">Select Gender</option>
-                            {genders.map((gender) => (
-                                <option key={gender.id} value={gender.id.toString()}>
-                                    {gender.name}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    <div style={{marginBottom: '10px'}}>
+                        <label>
+                            Gender:
+                            <select
+                                name="gender"
+                                value={form.gender?.id?.toString() || ""}
+                                onChange={handleInputChange}
+                                required
+                                style={{marginLeft: '10px', padding: '5px'}}
+                            >
+                                <option value="">Select Gender</option>
+                                {genders.map((gender) => (
+                                    <option key={gender.id} value={gender.id.toString()}>
+                                        {gender.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </div>
 
                 {error && !loading && (
@@ -252,28 +255,30 @@ function EmployeeComponent() {
 
             <h2>Employee List</h2>
 
-            <table border={1} cellPadding={8}>
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>NIC</th>
-                    <th>Email</th>
-                    <th>Gender</th>
-                </tr>
-                </thead>
-                <tbody>
-                {employees.map((emp) => (
-                    <tr key={emp.id}>
-                        <td>{emp.id}</td>
-                        <td>{emp.name}</td>
-                        <td>{emp.nic}</td>
-                        <td>{emp.email}</td>
-                        <td>{emp.gender?.name}</td>
+            <div className="table-wrapper">
+                <table className="employee-table" border={1} cellPadding={8}>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>NIC</th>
+                        <th>Email</th>
+                        <th>Gender</th>
                     </tr>
-                ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                    {employees.map((emp) => (
+                        <tr key={emp.id}>
+                            <td>{emp.id}</td>
+                            <td>{emp.name}</td>
+                            <td>{emp.nic}</td>
+                            <td>{emp.email}</td>
+                            <td>{emp.gender?.name}</td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

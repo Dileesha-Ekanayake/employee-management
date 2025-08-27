@@ -1,0 +1,269 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #2c2c2c;
+    color: #ffffff;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+/* Main Container */
+.employee-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Section Headers */
+h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 28px;
+    font-weight: 300;
+    color: #ffffff;
+}
+
+/* Form Styles */
+.employee-form {
+    background-color: #3c3c3c;
+    border: 2px solid #555555;
+    border-radius: 12px;
+    padding: 40px;
+    margin-bottom: 50px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.form-group {
+    margin-bottom: 25px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding-right: 20px;
+}
+
+.form-group label {
+    font-size: 16px;
+    font-weight: 500;
+    color: #ffffff;
+    min-width: 80px;
+    margin-right: 15px;
+}
+
+.form-group input,
+.form-group select {
+    flex: 1;
+    width: 100%;
+    max-width: 500px;
+    padding: 12px 16px;
+    background-color: #4a4a4a;
+    border: 2px solid #666666;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    background-color: #525252;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+}
+
+.form-group select option {
+    background-color: #4a4a4a;
+    color: #ffffff;
+    padding: 8px;
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 15px 20px;
+    background-color: #0ea5e9;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background-color: #0284c7;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
+}
+
+.submit-btn:disabled {
+    background-color: #666666;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    font-size: 18px;
+    color: #ffffff;
+    padding: 40px;
+}
+
+/* Table Styles */
+.employee-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #3c3c3c;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    margin-top: 20px;
+}
+
+.employee-table th {
+    background-color: #4a4a4a;
+    color: #ffffff;
+    padding: 18px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #555555;
+}
+
+.employee-table td {
+    padding: 16px;
+    color: #e5e5e5;
+    border-bottom: 1px solid #555555;
+    font-size: 14px;
+}
+
+.employee-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.employee-table tbody tr:hover {
+    background-color: #454545;
+}
+
+.employee-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ID Column */
+.employee-table td:first-child,
+.employee-table th:first-child {
+    text-align: center;
+    font-weight: bold;
+    color: #0ea5e9;
+    width: 60px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .employee-container {
+        padding: 10px;
+    }
+
+    .employee-form {
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+
+    .form-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .form-group label {
+        min-width: auto;
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+
+    .form-group input,
+    .form-group select {
+        max-width: none;
+        width: 100%;
+    }
+
+    h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    /* Make table horizontally scrollable on mobile */
+    .table-wrapper {
+        overflow-x: auto;
+        margin: 0 -10px;
+    }
+
+    .employee-table {
+        min-width: 600px;
+    }
+
+    .employee-table th,
+    .employee-table td {
+        padding: 12px 8px;
+        font-size: 13px;
+    }
+}
+
+/* Animation for form submission */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.submit-btn:disabled {
+    animation: pulse 1.5s infinite;
+}
+
+/* Accessibility improvements */
+.form-group input:focus-visible,
+.form-group select:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 2px;
+}
+
+/* Custom scrollbar for table */
+.table-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background-color: #2c2c2c;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background-color: #555555;
+    border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #666666;
+}
