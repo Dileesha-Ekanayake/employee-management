@@ -1,7 +1,7 @@
 import type {Gender} from "./Gender.ts";
 
 export interface Employee {
-    id: number;
+    id?: number;
     name: string;
     nic: string;
     email: string;

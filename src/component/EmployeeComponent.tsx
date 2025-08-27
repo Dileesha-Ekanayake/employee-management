@@ -1,13 +1,9 @@
-import { useEffect, useState } from "react";
-import { ApiService } from "../service/api-service.ts";
-import { ApiEndpoints } from "../service/api-endpoints.ts";
-import type { Employee } from "../entity/Employee.ts";
-import type { ApiResponse } from "../service/api-response.ts";
-
-type Gender = {
-    id: number;
-    name: string;
-};
+import {useEffect, useState} from "react";
+import {ApiService} from "../service/api-service.ts";
+import {ApiEndpoints} from "../service/api-endpoints.ts";
+import type {Employee} from "../entity/Employee.ts";
+import type {Gender} from "../entity/Gender.ts";
+import * as React from "react";
 
 type FormState = {
     name: string;
@@ -24,6 +20,8 @@ const initialForm: FormState = {
 };
 
 function EmployeeComponent() {
+
+    const [employee, setEmployee] = useState<Employee | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [genders, setGenders] = useState<Gender[]>([]);
     const [loading, setLoading] = useState(true);
@@ -32,35 +30,109 @@ function EmployeeComponent() {
     const [form, setForm] = useState<FormState>(initialForm);
     const [submitting, setSubmitting] = useState(false);
 
+    /*
+     * useEffect lets you run a function after the component renders. Typical use cases include:
+     * Fetching data from an API
+     * Subscribing to events (e.g., websockets, DOM events)
+     * Updating document title, localStorage, etc.
+     * Cleaning up resources when the component unmounts
+     *
+     * The first argument is a function (the effect).
+     * The second argument is an array of dependencies ([], [stateVar], etc.). It controls when the effect runs.
+     *
+     * useEffect with [] as dependencies run once after the first render, same as OnInit.
+     *
+     * Looks like similar to the Angular OnInit.
+     *
+     * useEffect is React’s way of handling side effects like data fetching.
+     * With [] as dependencies, it is very similar to Angular’s OnInit.
+    */
     useEffect(() => {
-        // Fetch both employees and genders
-        Promise.all([
-            ApiService.get<ApiResponse<Employee>[]>(ApiEndpoints.paths.employee),
-            ApiService.get<ApiResponse<Gender>[]>(ApiEndpoints.paths.gender) // Assuming you have this endpoint
-        ])
-            .then(([employeesResponse, gendersResponse]) => {
-                setEmployees(employeesResponse.data);
-                setGenders(gendersResponse.data);
-                setLoading(false);
-            })
-            .catch((error) => {
-                setError(error.message);
-                setLoading(false);
-            });
+        Promise.all([loadEmployees(), loadGenders()])
+            .finally(() => setLoading(false));
     }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    async function loadEmployees() {
+        try {
+            const response = await ApiService.get<Employee[]>(ApiEndpoints.paths.employee);
+            return setEmployees(response.data);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to fetch employees";
+            setError(errorMessage);
+        }
+    }
+
+    async function loadGenders() {
+        try {
+            const response = await ApiService.get<Gender[]>(ApiEndpoints.paths.gender);
+            return setGenders(response.data);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to fetch genders";
+            setError(errorMessage);
+        }
+    }
+
+    /**
+     * Handles input changes for a form field and updates the form state accordingly.
+     *
+     * @param {React.ChangeEvent<HTMLInputElement | HTMLSelectElement>} e - The input change event containing the updated field value and name.
+     * @returns {void}
+     *
+     * This function updates the form state based on the input name and value. If the input name corresponds to "gender",
+     * it finds the matching gender object from the available list of genders using the value. The rest of the fields
+     * are directly updated using their names and values. It ensures that when all required fields (name, nic, email, and gender)
+     * are filled, a new employee object is created and set. If any of the required fields are incomplete, the employee state is reset to null.
+     */
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>): void => {
         const { name, value } = e.target;
-        setForm(prev => ({
-            ...prev,
-            [name]: name === 'genderId' ? (value ? Number(value) : "") : value
-        }));
+
+        setForm(previous => {
+            let employeeForm: FormState;
+
+            if (name === "gender") {
+                const selectedGender = genders.find(g => g.id.toString() === value) || null;
+                employeeForm = { ...previous, gender: selectedGender };
+            } else {
+                employeeForm = { ...previous, [name]: value };
+            }
+
+            // Update the employee object if all fields are filled
+            if (employeeForm.name && employeeForm.nic && employeeForm.email && employeeForm.gender) {
+                const newEmployee: Employee = {
+                    name: employeeForm.name,
+                    nic: employeeForm.nic,
+                    email: employeeForm.email,
+                    gender: employeeForm.gender
+                };
+                setEmployee(newEmployee);
+            } else {
+                setEmployee(null); // incomplete form
+            }
+
+            return employeeForm;
+        });
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    /**
+     * Handles the submit event for a form, validating input fields and managing the form's state.
+     *
+     * This function performs the following tasks:
+     * - Prevents the default form submission behavior.
+     * - Checks if all required fields (`name`, `nic`, `email`, `gender`) are filled.
+     * - Displays an error message if validation fails.
+     * - Sets a submitting indicator and resets the error state before sending a request.
+     * - Sends an asynchronous POST request to add an employee using `ApiService`.
+     * - Reloads the employee list and resets the form state upon successful submission.
+     * - Handles errors gracefully by displaying an appropriate error message.
+     * - Toggles the submitting state back to `false` when the operation is complete.
+     *
+     * @param {React.FormEvent} e - The form submission event.
+     * @returns {Promise<void>} A promise that resolves when the operation completes.
+     */
+    const handleSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
 
-        if (!form.name || !form.nic || !form.email || !form.gender?.id) {
+        if (!form.name || !form.nic || !form.email || !form.gender) {
             setError("Please fill in all fields");
             return;
         }
@@ -69,29 +141,16 @@ function EmployeeComponent() {
         setError(null);
 
         try {
-            // If you update ApiService as suggested above:
-            // const response = await ApiService.post<FormState, ApiResponse<Employee>>(
-            //     ApiEndpoints.paths.employee,
-            //     form
-            // );
-            // setEmployees(prev => [...prev, response.data]);
 
-            // For now, with current ApiService:
-            const response = await ApiService.post<FormState>(
+            const response = await ApiService.post<Employee>(
                 ApiEndpoints.paths.employee,
-                form
+                employee
             );
 
-            // Refetch the employee list to get the updated data
-            const updatedEmployees = await ApiService.get<ApiResponse<Employee>[]>(
-                ApiEndpoints.paths.employee
-            );
-            setEmployees(updatedEmployees.data);
-
-            // Reset form
+            await loadEmployees();
             setForm(initialForm);
+            alert(response.message + " " + response.data);
 
-            console.log("Employee added successfully!");
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "Failed to add employee";
             setError(errorMessage);
@@ -100,16 +159,15 @@ function EmployeeComponent() {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (error && loading) return <div>Error: {error}</div>;
+    if (loading) return <div>Loading employees and genders...</div>;
+    if (error) return <div>Error: {error}</div>;
 
     return (
         <div>
             <h2>Add New Employee</h2>
 
-            {/* Add Employee Form */}
-            <form onSubmit={handleSubmit} style={{ marginBottom: '20px', padding: '20px', border: '1px solid #ccc' }}>
-                <div style={{ marginBottom: '10px' }}>
+            <form onSubmit={handleSubmit} style={{marginBottom: '20px', padding: '20px', border: '1px solid #ccc'}}>
+                <div style={{marginBottom: '10px'}}>
                     <label>
                         Name:
                         <input
@@ -118,12 +176,12 @@ function EmployeeComponent() {
                             value={form.name}
                             onChange={handleInputChange}
                             required
-                            style={{ marginLeft: '10px', padding: '5px' }}
+                            style={{marginLeft: '10px', padding: '5px'}}
                         />
                     </label>
                 </div>
 
-                <div style={{ marginBottom: '10px' }}>
+                <div style={{marginBottom: '10px'}}>
                     <label>
                         NIC:
                         <input
@@ -132,12 +190,12 @@ function EmployeeComponent() {
                             value={form.nic}
                             onChange={handleInputChange}
                             required
-                            style={{ marginLeft: '10px', padding: '5px' }}
+                            style={{marginLeft: '10px', padding: '5px'}}
                         />
                     </label>
                 </div>
 
-                <div style={{ marginBottom: '10px' }}>
+                <div style={{marginBottom: '10px'}}>
                     <label>
                         Email:
                         <input
@@ -146,24 +204,24 @@ function EmployeeComponent() {
                             value={form.email}
                             onChange={handleInputChange}
                             required
-                            style={{ marginLeft: '10px', padding: '5px' }}
+                            style={{marginLeft: '10px', padding: '5px'}}
                         />
                     </label>
                 </div>
 
-                <div style={{ marginBottom: '10px' }}>
+                <div style={{marginBottom: '10px'}}>
                     <label>
                         Gender:
                         <select
                             name="gender"
-                            value={form.gender?.id || ""}
+                            value={form.gender?.id?.toString() || ""}
                             onChange={handleInputChange}
                             required
-                            style={{ marginLeft: '10px', padding: '5px' }}
+                            style={{marginLeft: '10px', padding: '5px'}}
                         >
                             <option value="">Select Gender</option>
                             {genders.map((gender) => (
-                                <option key={gender.id} value={gender.id}>
+                                <option key={gender.id} value={gender.id.toString()}>
                                     {gender.name}
                                 </option>
                             ))}
@@ -172,7 +230,7 @@ function EmployeeComponent() {
                 </div>
 
                 {error && !loading && (
-                    <div style={{ color: 'red', marginBottom: '10px' }}>
+                    <div style={{color: 'red', marginBottom: '10px'}}>
                         {error}
                     </div>
                 )}
